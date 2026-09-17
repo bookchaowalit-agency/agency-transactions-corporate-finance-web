@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mode": "persuade",
+  "world": "Deal room evidence board",
+  "artifact": "dealroom",
+  "tokens": {
+    "color": {
+      "bg": "#101923",
+      "ink": "#f0f4ea",
+      "muted": "#a9b7b0",
+      "line": "#354554",
+      "panel": "#172936",
+      "accent": "#c8f34b",
+      "inverse": "#eff5e9",
+      "inverseInk": "#101923"
+    },
+    "typography": {
+      "display": "Noto Serif Thai",
+      "body": "Noto Sans Thai",
+      "utility": "system monospace"
+    },
+    "spacing": {
+      "page": "clamp(18px, 5vw, 76px)",
+      "section": "clamp(67px, 10vw, 144px)"
+    },
+    "shape": {
+      "radius": "world-specific",
+      "elevation": "one deliberate surface system"
+    }
+  }
+}
