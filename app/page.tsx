@@ -1,19 +1,7 @@
+import Link from 'next/link';
+import { pseoService } from '@/lib/pseo';
+import { readinessCopy } from '@/lib/readiness';
 import { site } from '@/lib/site';
-
-const statusCopy = {
-  incubating: {
-    label: 'กำลังเปิดรอบ validation',
-    note: 'กำลังทดสอบ buyer, offer และ delivery economics ก่อนเปิดรับงานในขอบเขตที่ชัดเจน',
-  },
-  target: {
-    label: 'เตรียมไว้ใน portfolio',
-    note: 'positioning พร้อมสำหรับการทดสอบ แต่ owner และหลักฐานการส่งมอบยังต้องผ่าน gate ก่อนเปิดรับงาน',
-  },
-  locked: {
-    label: 'future capability',
-    note: 'เก็บไว้สำหรับการวิจัยและวางพันธมิตร ยังไม่มีการรับข้อมูลหรือรับประกันบริการ',
-  },
-} as const;
 
 function Artifact() {
   const labels = site.scope.slice(0, 4);
@@ -53,7 +41,8 @@ function Artifact() {
 }
 
 export default function HomePage() {
-  const readiness = statusCopy[site.status];
+  const readiness = readinessCopy(site.status);
+  const servicePath = `/services/${pseoService.slug}`;
 
   return (
     <div className={`site-shell archetype-${site.design.archetype}`} data-site={site.slug}>
@@ -62,7 +51,7 @@ export default function HomePage() {
           <span className="brand-mark" aria-hidden="true">{String(site.number).padStart(2, '0')}</span>
           <span><strong>{site.name}</strong><small>{site.thaiName}</small></span>
         </a>
-        <nav aria-label="เมนูหลัก"><a href="#offer">Scope</a><a href="#readiness">Readiness</a><a href="/services/technical-commercial-diligence">Service</a></nav>
+        <nav aria-label="เมนูหลัก"><a href="#offer">Scope</a><a href="#readiness">Readiness</a><Link href={servicePath}>Service</Link></nav>
       </header>
 
       <main id="main-content" className="site-main">
@@ -72,7 +61,7 @@ export default function HomePage() {
             <p className="hero-thesis">{site.design.thesis}</p>
             <div className="hero-meta"><span>{site.design.material}</span><span>showcase / {site.stage}</span></div>
             <a className="primary-link" href="#offer">{site.cta}<span className="link-mark" aria-hidden="true" /></a>
-            <a className="pseo-home-link" href="/services/technical-commercial-diligence">ดู service page <span aria-hidden="true">↗</span></a>
+            <Link className="pseo-home-link" href={servicePath}>ดู service page <span aria-hidden="true">↗</span></Link>
           </div>
           <div className="hero-art">
             <Artifact />

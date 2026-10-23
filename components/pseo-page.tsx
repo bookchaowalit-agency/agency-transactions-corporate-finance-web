@@ -1,13 +1,8 @@
 import Link from 'next/link';
+import { readinessCopy } from '@/lib/readiness';
 import { site } from '@/lib/site';
 import { pseoService, type PseoService } from '@/lib/pseo';
 import { absoluteUrl, siteConfig } from '@/lib/site-config';
-
-const statusCopy = {
-  incubating: { label: 'กำลังเปิดรอบ validation', note: 'กำลังทดสอบ buyer, offer และ delivery economics ก่อนเปิดรับงานในขอบเขตที่ชัดเจน' },
-  target: { label: 'เตรียมไว้ใน portfolio', note: 'positioning พร้อมสำหรับการทดสอบ แต่ owner และหลักฐานการส่งมอบยังต้องผ่าน gate ก่อนเปิดรับงาน' },
-  locked: { label: 'future capability', note: 'เก็บไว้สำหรับการวิจัยและวางพันธมิตร ยังไม่มีการรับข้อมูลหรือรับประกันบริการ' },
-} as const;
 
 function structuredData(service: PseoService) {
   const canonical = siteConfig.publicUrl ? absoluteUrl('/services/' + service.slug) : undefined;
@@ -38,7 +33,7 @@ export function PseoHeader() {
 }
 
 export function PseoLandingPage({ service = pseoService }: { service?: PseoService }) {
-  const readiness = statusCopy[service.agencyStatus];
+  const readiness = readinessCopy(service.agencyStatus);
   const structuredDataJson = structuredData(service);
   return <div className="pseo-shell"><PseoHeader /><main id="main-content" className="pseo-main">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredDataJson }} />
