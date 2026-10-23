@@ -12,6 +12,10 @@
 ## Local checks
 
 ```bash
+npm run lint
 npm run typecheck
-npm run build
+npm test        # includes the noindex / Disallow default and the indexing switch (tests/site-config.test.ts)
+npm run check   # typecheck + static export
 ```
+
+CI runs the same checks through the shared workflow (`.github/workflows/ci.yml`) with a line-coverage gate.
