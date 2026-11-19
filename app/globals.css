@@ -237,7 +237,7 @@ a { color: inherit; }
 
 /* 2026-11-18 review: on this dark board the light --inverse box glared; keep the readiness note and
    skip link on the panel colour with an accent rule so the page keeps one weight. */
-.readiness-note { color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
+.readiness-note { --readiness-focus: var(--focus); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
 .readiness-note p { color: var(--muted); }
 .readiness-note span { color: var(--muted); border-top-color: var(--line); }
 .skip-link { color: var(--ink); background: var(--panel); border: 1px solid var(--accent); }
