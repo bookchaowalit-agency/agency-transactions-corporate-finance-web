@@ -11,6 +11,9 @@
   --serif: var(--font-serif-thai), Georgia, 'Times New Roman', serif;
   --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --display: var(--serif);
+  /* 2026-11-18 review: focus ring/lines >= 3:1 on --bg; accent as text >= 4.5:1 on --bg and --panel. */
+  --focus: #c8f34b;
+  --accent-text: #c8f34b;
 }
 
 * { box-sizing: border-box; }
@@ -18,7 +21,6 @@ html { scroll-behavior: smooth; }
 body { margin: 0; color: var(--ink); background: var(--bg); font-family: var(--sans); }
 ::selection { color: var(--inverse-ink); background: var(--accent); }
 a { color: inherit; }
-a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .skip-link { position: fixed; z-index: 10; top: 8px; left: 8px; padding: 9px 12px; color: var(--inverse-ink); background: var(--inverse); transform: translateY(-160%); }
 .skip-link:focus { transform: translateY(0); }
 .site-shell { min-height: 100vh; overflow: hidden; background: var(--bg); }
@@ -232,3 +234,10 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
    and keep the readiness gate off the deliverables grid (its padding shorthand drops .pseo-section's top padding). */
 .pseo-section-heading h2, .pseo-readiness h2, .pseo-card h2 { margin-top: .32em; }
 .pseo-readiness { margin-top: clamp(40px, 6vw, 72px); }
+
+/* 2026-11-18 review: on this dark board the light --inverse box glared; keep the readiness note and
+   skip link on the panel colour with an accent rule so the page keeps one weight. */
+.readiness-note { color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); }
+.readiness-note p { color: var(--muted); }
+.readiness-note span { color: var(--muted); border-top-color: var(--line); }
+.skip-link { color: var(--ink); background: var(--panel); border: 1px solid var(--accent); }
