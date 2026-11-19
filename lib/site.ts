@@ -22,6 +22,7 @@ export const site = {
   "status": "target",
   "design": {
     "projectName": "solo-agency-transactions-corporate-finance",
+    "productionUrl": "https://solo-agency-transactions-corporate.vercel.app",
     "archetype": "dealroom",
     "motif": "dealroom",
     "world": "Deal room evidence board",
