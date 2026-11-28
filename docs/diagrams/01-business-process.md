@@ -8,25 +8,27 @@ Last reviewed: 2026-11-28 · commit `e9a3f7a`
 
 ```mermaid
 flowchart TD
-  DEV["push or PR to main"] --> CI["CI: ci-node + security scan"]
+  DEV["push or PR to main"] --> CI["CI: two independent jobs, web (ESLint, typecheck, Vitest, check) and security"]
   CI -->|"fails closed"| CIFAIL["red check on the commit"]
   DEV -->|"push"| NODEPLOY["no deploy from push per PRODUCT.md (Vercel has no Git link); CI does not deploy [ต้องยืนยัน]"]
   OWNER["owner"] -->|"Vercel CLI"| VERCEL["Vercel project solo-agency-transactions-corporate-finance: static out/"]
   DATA["lib/site.ts + lib/pseo.ts (hard-coded copy)"] --> BUILD["next build, output export, trailingSlash"]
-  ENV["NEXT_PUBLIC_SITE_URL + NEXT_PUBLIC_SITE_INDEXABLE"] --> GATE{"approved URL AND INDEXABLE == true?"}
-  GATE -->|no, default| NOIDX["meta noindex, robots Disallow: / (link-preview bots allowed), empty sitemap, no canonical"]
+  ENV["NEXT_PUBLIC_SITE_URL + NEXT_PUBLIC_SITE_INDEXABLE"] --> GATE{"SITE_URL valid AND INDEXABLE == true?"}
+  GATE -->|no, default| NOIDX["meta noindex, robots Disallow: / (link-preview bots allowed), empty sitemap; canonical and share-image base follow NEXT_PUBLIC_SITE_URL, not the INDEXABLE flag"]
   GATE -->|yes| IDX["index,follow, canonical, sitemap with 3 paths"]
   NOIDX --> BUILD
   IDX --> BUILD
   BUILD --> VERCEL
   VISITOR["visitor"] --> HOME["/ home: promise, scope, readiness note"]
-  VISITOR --> SERVICE["/services/ and /services/technical-commercial-diligence/ (Service + BreadcrumbList JSON-LD)"]
+  VISITOR --> SERVICE["/services/ directory (no JSON-LD)"]
+  VISITOR --> DETAIL["/services/technical-commercial-diligence/ (Service + BreadcrumbList JSON-LD)"]
   VISITOR --> OTHER["unknown path: not-found page"]
   HOME --> NOFORM["dead end: no form, no API, no database, no inquiry intake"]
   HOME --> PORTFOLIO["out-link to agency portfolio, privacy, status, mail"]
   SERVICE --> NOFORM
+  DETAIL --> NOFORM
   VERCEL --> VISITOR
-  VISITOR -.->|"browser error"| SENTRY["Sentry errors only, if NEXT_PUBLIC_SENTRY_DSN set; beforeSend drops request, user, breadcrumbs, extra, non-platform contexts and strips query strings"]
+  VISITOR -.->|"browser error"| SENTRY["Sentry error events, if NEXT_PUBLIC_SENTRY_DSN set; beforeSend drops request, user, breadcrumbs, extra, non-platform contexts and strips query strings; SDK client reports/sessions are outside beforeSend [ต้องยืนยัน]"]
 ```
 
 Sources: `app/page.tsx`, `app/services/page.tsx`, `app/services/[slug]/page.tsx`, `app/robots.ts`, `app/sitemap.ts`, `lib/site-config.ts`, `lib/site.ts`, `lib/pseo.ts`, `lib/readiness.ts`, `components/pseo-page.tsx`, `components/site-links.tsx`, `next.config.ts`, `instrumentation-client.ts`, `lib/sentry.ts`, `.github/workflows/ci.yml`, `README.md`, `PRODUCT.md`
@@ -34,11 +36,11 @@ Sources: `app/page.tsx`, `app/services/page.tsx`, `app/services/[slug]/page.tsx`
 ข้อเท็จจริงสำคัญจากโค้ด:
 
 - ข้อความทั้งหมดอยู่ในโค้ด (`lib/site.ts`, `lib/pseo.ts`) ไม่มีการอ่านข้อมูลตอนรัน; `generateStaticParams` ให้ service slug เดียว (`technical-commercial-diligence`) และ `dynamicParams = false` ดังนั้น path อื่นใต้ `/services/` เป็น 404
-- `isIndexable` เป็นจริงเมื่อมี `NEXT_PUBLIC_SITE_URL` ที่ parse ผ่าน (http/https, ไม่มี query, fragment หรือ user:password) และ `NEXT_PUBLIC_SITE_INDEXABLE` เท่ากับ `true` พอดี ถ้าไม่ครบ ทุกหน้าเป็น `noindex, nofollow`, sitemap ว่าง, ไม่มี canonical; ภาพ og ใช้โดเมน production ของ site เอง
+- `isIndexable` เป็นจริงเมื่อมี `NEXT_PUBLIC_SITE_URL` ที่ parse ผ่าน (http/https, ไม่มี query, fragment หรือ user:password) และ `NEXT_PUBLIC_SITE_INDEXABLE` เท่ากับ `true` พอดี ถ้าไม่ครบ ทุกหน้าเป็น `noindex, nofollow` และ sitemap ว่าง; canonical แยกจากเงื่อนไขนี้: มีเมื่อ `NEXT_PUBLIC_SITE_URL` ผ่านการ parse (แม้ไม่ได้เปิด index); ภาพ og/share ใช้ `NEXT_PUBLIC_SITE_URL` ถ้าไม่ใช่ loopback ไม่เช่นนั้นใช้โดเมน production ของ site เอง (`lib/site-config.ts`)
 - sitemap ในโหมด index มี `/`, `/services`, `/services/technical-commercial-diligence` (ไม่มี trailing slash)
 - social card คือ `public/og.png` (วาดโดย `scripts/og.mjs` แล้ว commit ไว้)
-- CI รัน typecheck + Vitest (coverage gate 76%) + `npm run check` (typecheck + build) แล้วรัน security scan ที่ใช้ร่วมกัน (`.github/workflows/ci.yml`)
-- Sentry เปิดเฉพาะฝั่ง browser เมื่อมี DSN (`instrumentation-client.ts`, `lib/sentry.ts`) ไม่มี DSN คือปิด; `beforeSend` ลบ request/user/breadcrumbs/extra และ context ที่ไม่ใช่ข้อมูลแพลตฟอร์ม กับตัด query/hash ออกจากข้อความ ไม่ได้ลบข้อมูลอื่นทั้งหมด (stack trace และชื่อ error ยังส่ง)
+- CI มี 2 job อิสระต่อกัน (ไม่มี `needs`): `web` รัน ESLint + typecheck + Vitest (coverage gate 76%) + `npm run check` และ `security` (scan ที่ใช้ร่วมกัน) ซึ่งรันได้แม้ `web` ล้ม (`.github/workflows/ci.yml`); CI ไม่ deploy
+- Sentry เปิดเฉพาะฝั่ง browser เมื่อมี DSN (`instrumentation-client.ts`, `lib/sentry.ts`) ไม่มี DSN คือปิด; `beforeSend` ลบ request/user/breadcrumbs/extra และ context ที่ไม่ใช่ข้อมูลแพลตฟอร์ม กับตัด query/hash ออกจากข้อความ ไม่ได้ลบข้อมูลอื่นทั้งหมด (stack trace และชื่อ error ยังส่ง); `beforeSend` ครอบเฉพาะ error event ส่วน client reports/session ของ SDK ไม่ผ่าน `beforeSend` และ `sentryOptions()` ไม่ได้ปิด [ต้องยืนยัน] ว่า production ส่งอะไรบ้าง
 - การ deploy: `PRODUCT.md` (2026-10-23) บอกว่า project `solo-agency-transactions-corporate-finance` ไม่มี Git link และ deploy ด้วย Vercel CLI; ในโค้ดไม่มี deploy step จึงยืนยันสถานะวันนี้ไม่ได้ [ต้องยืนยัน]
 - sitemap ใช้ path ไม่มี trailing slash ทั้งที่ `next.config.ts` ตั้ง `trailingSlash: true` (`app/sitemap.ts`) [ต้องยืนยัน] ว่าตั้งใจหรือไม่; มีผลเมื่อเปิด index เท่านั้น
 
@@ -48,7 +50,7 @@ Sources: `app/page.tsx`, `app/services/page.tsx`, `app/services/[slug]/page.tsx`
 flowchart TD
   OWNER["owner"] --> GITLINK["Vercel Git link to repo (owner action D9)"]
   GITLINK --> PUSH["push to main"]
-  PUSH --> DEPLOY["Vercel deploys main (Git integration, not gated by CI)"]
+  PUSH --> DEPLOY["Vercel deploys main (Git integration; whether it waits for CI [ต้องยืนยัน])"]
   PUSH --> CI["CI: web + security (separate check)"]
   DEPLOY --> BUILD["static export out/"]
   BUILD --> SITE["pages live, noindex until indexing is approved"]
@@ -61,7 +63,7 @@ Sources: `PRODUCT.md` (Live URL and deploy state)
 | ID | As-Is → To-Be | Status | Owner | Evidence |
 |---|---|---|---|---|
 | G1 | deploy by Vercel CLI, `main` push does not deploy → Vercel Git link, push to `main` deploys | blocked | owner | `PRODUCT.md` (owner action D9, 2026-10-23) |
-| G2 | noindex and no intake, no written plan for either → owner decides when to open indexing or intake | decide | owner | owner decision needed; no spec in repo |
+| G2 | noindex by default → owner decides when to set an approved `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_SITE_INDEXABLE=true`. Inquiry intake is a separate matter: out of scope for this showcase (no lead collection), and the readiness gate in `lib/pseo.ts` must pass before any inquiry is accepted | decide | owner | `PRODUCT.md`, `lib/pseo.ts` (readiness), `AGENTS.md` (no lead collection); owner decision needed for indexing; no spec in repo |
 
 ## Open questions
 
