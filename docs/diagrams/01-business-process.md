@@ -10,8 +10,7 @@ Last reviewed: 2026-11-28 · commit `e9a3f7a`
 flowchart TD
   DEV["push or PR to main"] --> CI["CI: two independent jobs, web (ESLint, typecheck, Vitest, check) and security"]
   CI -->|"fails closed"| CIFAIL["red check on the commit"]
-  DEV -->|"push"| NODEPLOY["no deploy from push per PRODUCT.md (Vercel has no Git link); CI does not deploy [ต้องยืนยัน]"]
-  OWNER["owner"] -->|"Vercel CLI"| VERCEL["Vercel project solo-agency-transactions-corporate-finance: static out/"]
+  DEV -->|"push to main deploys via Vercel Git link (verified 2026-11-28), separate from CI, not gated by it"| VERCEL["Vercel project solo-agency-transactions-corporate-finance: static out/"]
   DATA["lib/site.ts + lib/pseo.ts (hard-coded copy)"] --> BUILD["next build, output export, trailingSlash"]
   ENV["NEXT_PUBLIC_SITE_URL + NEXT_PUBLIC_SITE_INDEXABLE"] --> GATE{"SITE_URL valid AND INDEXABLE == true?"}
   GATE -->|no, default| NOIDX["meta noindex, robots Disallow: / (link-preview bots allowed), empty sitemap; canonical and share-image base follow NEXT_PUBLIC_SITE_URL, not the INDEXABLE flag"]
@@ -41,16 +40,15 @@ Sources: `app/page.tsx`, `app/services/page.tsx`, `app/services/[slug]/page.tsx`
 - social card คือ `public/og.png` (วาดโดย `scripts/og.mjs` แล้ว commit ไว้)
 - CI มี 2 job อิสระต่อกัน (ไม่มี `needs`): `web` รัน ESLint + typecheck + Vitest (coverage gate 76%) + `npm run check` และ `security` (scan ที่ใช้ร่วมกัน) ซึ่งรันได้แม้ `web` ล้ม (`.github/workflows/ci.yml`); CI ไม่ deploy
 - Sentry เปิดเฉพาะฝั่ง browser เมื่อมี DSN (`instrumentation-client.ts`, `lib/sentry.ts`) ไม่มี DSN คือปิด; `beforeSend` ลบ request/user/breadcrumbs/extra และ context ที่ไม่ใช่ข้อมูลแพลตฟอร์ม กับตัด query/hash ออกจากข้อความ ไม่ได้ลบข้อมูลอื่นทั้งหมด (stack trace และชื่อ error ยังส่ง); `beforeSend` ครอบเฉพาะ error event ส่วน client reports/session ของ SDK ไม่ผ่าน `beforeSend` และ `sentryOptions()` ไม่ได้ปิด [ต้องยืนยัน] ว่า production ส่งอะไรบ้าง
-- การ deploy: `PRODUCT.md` (2026-10-23) บอกว่า project `solo-agency-transactions-corporate-finance` ไม่มี Git link และ deploy ด้วย Vercel CLI; ในโค้ดไม่มี deploy step จึงยืนยันสถานะวันนี้ไม่ได้ [ต้องยืนยัน]
+- การ deploy: ในโค้ดไม่มี deploy step (`ci.yml` ไม่ deploy) แต่ Vercel project `solo-agency-transactions-corporate-finance` มี Git link ไป GitHub repo นี้ production branch `main` จึง push เข้า `main` แล้ว deploy (ตรวจผ่าน Vercel API 2026-11-28) เป็นเส้นทางแยกจาก CI ไม่ถูก CI gate; production = e9aa438 ผ่าน Vercel Git; `main` HEAD ea45666 ล้ำหน้าเฉพาะ commit ใน docs/. `PRODUCT.md` (2026-10-23) ที่บอกว่าไม่มี Git link และ deploy ด้วย CLI เป็นข้อมูลเก่า
 - sitemap ใช้ path ไม่มี trailing slash ทั้งที่ `next.config.ts` ตั้ง `trailingSlash: true` (`app/sitemap.ts`) [ต้องยืนยัน] ว่าตั้งใจหรือไม่; มีผลเมื่อเปิด index เท่านั้น
 
 ## To-Be (จาก PRODUCT.md)
 
 ```mermaid
 flowchart TD
-  OWNER["owner"] --> GITLINK["Vercel Git link to repo (owner action D9)"]
-  GITLINK --> PUSH["push to main"]
-  PUSH --> DEPLOY["Vercel deploys main (Git integration; whether it waits for CI [ต้องยืนยัน])"]
+  GITLINK["Vercel Git link to repo (owner action D9, done, verified 2026-11-28)"] --> PUSH["push to main"]
+  PUSH --> DEPLOY["Vercel deploys main (Git integration, separate from CI, not gated by it)"]
   PUSH --> CI["CI: web + security (separate check)"]
   DEPLOY --> BUILD["static export out/"]
   BUILD --> SITE["pages live, noindex until indexing is approved"]
@@ -62,9 +60,9 @@ Sources: `PRODUCT.md` (Live URL and deploy state)
 
 | ID | As-Is → To-Be | Status | Owner | Evidence |
 |---|---|---|---|---|
-| G1 | deploy by Vercel CLI, `main` push does not deploy → Vercel Git link, push to `main` deploys | blocked | owner | `PRODUCT.md` (owner action D9, 2026-10-23) |
+| G1 | deploy by Vercel CLI, `main` push does not deploy → Vercel Git link, push to `main` deploys | done | owner | `PRODUCT.md` (owner action D9, 2026-10-23); Vercel API 2026-11-28: project `solo-agency-transactions-corporate-finance` Git link → `bookchaowalit-agency/agency-transactions-corporate-finance-web`, production branch `main` |
 | G2 | noindex by default → owner decides when to set an approved `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_SITE_INDEXABLE=true`. Inquiry intake is a separate matter: out of scope for this showcase (no lead collection), and the readiness gate in `lib/pseo.ts` must pass before any inquiry is accepted | decide | owner | `PRODUCT.md`, `lib/pseo.ts` (readiness), `AGENTS.md` (no lead collection); owner decision needed for indexing; no spec in repo |
 
 ## Open questions
 
-- Vercel project `solo-agency-transactions-corporate-finance` ถูกเชื่อม Git แล้วหรือยัง และ production ตรงกับ `main` หรือไม่ (ต้องดูใน Vercel; ไม่มีใน repo) [ต้องยืนยัน]
+- ไม่มีคำถามค้างเรื่อง Git link: ปิดแล้ว (production = e9aa438 ผ่าน Vercel Git; `main` HEAD ea45666 ล้ำหน้าเฉพาะ commit ใน docs/)
